@@ -33,7 +33,7 @@ import (
 	"github.com/chrissnell/polymur/output"
 	"github.com/chrissnell/polymur/pool"
 	"github.com/chrissnell/polymur/statstracker"
-	"github.com/chrissnell/runstats"
+	"github.com/chrissnell/polymur/runstats"
 )
 
 var (
