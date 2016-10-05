@@ -12,21 +12,50 @@ node {
     sh "docker run --rm -v `pwd`:${gopath} -w ${gopath} golang:latest make"
   }
 
-  stash name: 'binary', includes: "${app}"
+  stash name: 'binary-polymur', includes: "polymur"
+  stash name: 'binary-polymur-gateway', includes: "polymur-gateway"
+  stash name: 'binary-polymur-proxy', includes: "polymur-proxy"
 }
 
-stage 'Docker build and push'
+stage 'Docker build and push :: polymur'
 node {
   checkout scm
-  unstash 'binary'
+  unstash 'binary-polymur'
 
   version = currentVersion()
   hoister.registry = registry
-  hoister.imageName = app
+  hoister.imageName = polymur
   hoister.buildAndPush version
 
-  stagehandPublish(app, version)
+  stagehandPublish(polymur, version)
 }
+
+stage 'Docker build and push :: polymur-gateway'
+node {
+  checkout scm
+  unstash 'binary-polymur-gateway'
+
+  version = currentVersion()
+  hoister.registry = registry
+  hoister.imageName = polymur-gateway
+  hoister.buildAndPush version
+
+  stagehandPublish(polymur-gateway, version)
+}
+
+stage 'Docker build and push :: polymur-proxy'
+node {
+  checkout scm
+  unstash 'binary-polymur-proxy'
+
+  version = currentVersion()
+  hoister.registry = registry
+  hoister.imageName = polymur-proxy
+  hoister.buildAndPush version
+
+  stagehandPublish(polymur-proxy, version)
+}
+
 
 stage 'Kubernetes deploy to test'
 node {
