@@ -1,3 +1,11 @@
+___
+# Note:
+### This is my (chrissnell) fork of Jamie Alquiza's Polymur.  There are a few differences with this fork:
+* This fork removes the Consul-based API key authentication in `polymur-gateway` and replaces it with standard TLS certificate-based authentication.  You will need a private certificate authority to sign the certificates that clients use to connect.  I recommend [cfssl](https://github.com/cloudflare/cfssl) for this.
+* This fork removes the `runstats` library which sends internal performance data from polymur to the Graphite server
+
+___
+
 # polymur
 
 See [Polymur-proxy](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-proxy) and [Polymur-gateway](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-gateway) services for offsite metrics forwarding over HTTPS.
@@ -52,8 +60,6 @@ Usage of ./polymur:
         Destination distribution methods: broadcast, hash-route (default "broadcast")
   -listen-addr string
         Polymur listen address (default "0.0.0.0:2003")
-  -metrics-flush int
-        Graphite flush interval for runtime metrics (0 is disabled)
   -queue-cap int
         In-flight message queue capacity per destination (default 4096)
   -stat-addr string
@@ -66,14 +72,13 @@ Usage of ./polymur:
 
 Listening for incoming metrics on `0.0.0.0:2003` and mirroring to `10.0.5.20:2003` and `10.0.5.30:2003`:
 <pre>
-./polymur -destinations="10.0.5.20:2003,10.0.5.30:2003" -metrics-flush=30 -"listen-addr=0.0.0.0:2003" -distribution="broadcast"
+./polymur -destinations="10.0.5.20:2003,10.0.5.30:2003" -"listen-addr=0.0.0.0:2003" -distribution="broadcast"
 2015/05/14 15:19:08 ::: Polymur :::
 2015/05/14 15:19:08 Registered destination 10.0.5.20:2003
 2015/05/14 15:19:08 Registered destination 10.0.5.30:2003
 2015/05/14 15:19:08 Adding destination to connection pool: 10.0.5.30:2003
 2015/05/14 15:19:08 Adding destination to connection pool: 10.0.5.20:2003
 2015/05/14 15:19:09 API started: localhost:2030
-2015/05/14 15:19:09 Runstats started: localhost:2020
 2015/05/14 15:19:09 Metrics listener started: 0.0.0.0:2003
 2015/05/14 15:19:14 Last 5s: Received 7276 data points | Avg: 1455.20/sec.
 2015/05/14 15:19:19 Last 5s: Received 6471 data points | Avg: 1294.20/sec.
@@ -89,7 +94,6 @@ Polymur started with no initial destinations:
 2015/05/14 09:09:15 ::: Polymur :::
 2015/05/14 09:09:15 Metrics listener started: 0.0.0.0:2003
 2015/05/14 09:09:15 API started: localhost:2030
-2015/05/14 09:09:15 Runstats started: localhost:2020
 </pre>
 
 <pre>
