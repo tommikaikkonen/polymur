@@ -28,32 +28,29 @@ import (
 	"syscall"
 
 	"github.com/chrissnell/polymur"
-	"github.com/chrissnell/polymur/keysync"
 	"github.com/chrissnell/polymur/listener"
 	"github.com/chrissnell/polymur/output"
 	"github.com/chrissnell/polymur/pool"
-	"github.com/chrissnell/polymur/runstats"
 	"github.com/chrissnell/polymur/statstracker"
 	"github.com/namsral/flag"
 )
 
 var (
 	options struct {
-		addr                  string
-		port                  string
-		apiAddr               string
-		statAddr              string
-		queuecap              int
-		console               bool
-		destinations          string
-		metricsFlush          int
-		distribution          string
-		cert                  string
-		key                   string
-		useCertAuthentication bool
-		ca                    string
-		devMode               bool
-		keyPrefix             bool
+		addr         string
+		port         string
+		apiAddr      string
+		statAddr     string
+		queuecap     int
+		console      bool
+		destinations string
+		metricsFlush int
+		distribution string
+		cert         string
+		key          string
+		ca           string
+		devMode      bool
+		keyPrefix    bool
 	}
 
 	sigChan = make(chan os.Signal)
@@ -63,7 +60,6 @@ func init() {
 	flag.StringVar(&options.addr, "listen-addr", "0.0.0.0", "Polymur-gateway listen address")
 	flag.StringVar(&options.port, "listen-port", "443", "Polymur-gateway listen port")
 	flag.StringVar(&options.apiAddr, "api-addr", "localhost:2030", "API listen address")
-	flag.StringVar(&options.statAddr, "stat-addr", "localhost:2020", "runstats listen address")
 	flag.IntVar(&options.queuecap, "queue-cap", 4096, "In-flight message queue capacity per destination")
 	flag.BoolVar(&options.console, "console-out", false, "Dump output to console")
 	flag.StringVar(&options.destinations, "destinations", "", "Comma-delimited list of ip:port destinations")
@@ -72,7 +68,6 @@ func init() {
 	flag.StringVar(&options.cert, "cert", "", "TLS Certificate")
 	flag.StringVar(&options.key, "key", "", "TLS Key")
 	flag.StringVar(&options.ca, "ca-cert", "", "CA Cert (for certificate-based authentication)")
-	flag.BoolVar(&options.useCertAuthentication, "use-cert-auth", false, "Use TLS certificate-based authentication in lieu of API keys")
 	flag.BoolVar(&options.devMode, "dev-mode", false, "Dev mode: disables Consul API key store; uses '123'")
 	flag.BoolVar(&options.keyPrefix, "key-prefix", false, "If enabled, prepends all metrics with the origin polymur-proxy API key's name")
 	flag.Parse()
@@ -87,12 +82,11 @@ func runControl() {
 }
 
 func main() {
-	var apiKeys *keysync.ApiKeys
 
 	log.Println("::: Polymur-gateway :::")
 
-	if options.useCertAuthentication && options.cert == "" {
-		log.Fatalln("Cannot use certificate-based authentication without supplying a cert via -cert")
+	if options.cert == "" {
+		log.Fatalln("You must supply a TLS certificate.  Run with -h for help.")
 	}
 
 	ready := make(chan bool, 1)
@@ -123,17 +117,6 @@ func main() {
 	sentCntr := &statstracker.Stats{}
 	go statstracker.StatsTracker(pool, sentCntr)
 
-	// Only start the key sync service if we're using key-based authentication
-	if !options.useCertAuthentication {
-		// API key sync service.
-		apiKeys = keysync.NewApiKeys()
-		if !options.devMode {
-			go keysync.Run(apiKeys)
-		} else {
-			apiKeys.Keys["123"] = "dev"
-		}
-	}
-
 	// HTTP Listener.
 	go listener.HTTPListener(&listener.HTTPListenerConfig{
 		Addr:          options.addr,
@@ -141,23 +124,13 @@ func main() {
 		IncomingQueue: incomingQueue,
 		Cert:          options.cert,
 		CA:            options.ca,
-		UseCertAuthentication: options.useCertAuthentication,
-		KeyPrefix:             options.keyPrefix,
-		Key:                   options.key,
-		Stats:                 sentCntr,
-		Keys:                  apiKeys,
+		KeyPrefix:     options.keyPrefix,
+		Key:           options.key,
+		Stats:         sentCntr,
 	})
 
 	// API listener.
 	go polymur.Api(pool, options.apiAddr)
-
-	// Polymur stats writer.
-	if options.metricsFlush > 0 {
-		go runstats.WriteGraphite(incomingQueue, options.metricsFlush, sentCntr)
-	}
-
-	// Runtime stats listener.
-	go runstats.Start(options.statAddr)
 
 	runControl()
 }

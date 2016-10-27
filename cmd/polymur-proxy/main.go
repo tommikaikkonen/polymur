@@ -29,25 +29,22 @@ import (
 
 	"github.com/chrissnell/polymur/listener"
 	"github.com/chrissnell/polymur/output"
-	"github.com/chrissnell/polymur/runstats"
 	"github.com/chrissnell/polymur/statstracker"
 	"github.com/namsral/flag"
 )
 
 var (
 	options struct {
-		clientCert            string
-		clientKey             string
-		CACert                string
-		useCertAuthentication bool
-		APIKey                string
-		gateway               string
-		addr                  string
-		statAddr              string
-		queuecap              int
-		workers               int
-		console               bool
-		metricsFlush          int
+		clientCert   string
+		clientKey    string
+		CACert       string
+		gateway      string
+		addr         string
+		statAddr     string
+		queuecap     int
+		workers      int
+		console      bool
+		metricsFlush int
 	}
 
 	sigChan = make(chan os.Signal)
@@ -57,8 +54,6 @@ func init() {
 	flag.StringVar(&options.clientCert, "client-cert", "", "Client TLS Certificate")
 	flag.StringVar(&options.clientKey, "client-key", "", "Client TLS Private Key")
 	flag.StringVar(&options.CACert, "ca-cert", "", "CA Root Certificate - if server is using a cert that wasn't signed by a root CA that we recognize automatically")
-	flag.BoolVar(&options.useCertAuthentication, "use-cert-auth", false, "Use TLS certificate-based authentication in lieu of API keys")
-	flag.StringVar(&options.APIKey, "api-key", "", "polymur gateway API key")
 	flag.StringVar(&options.gateway, "gateway", "", "polymur gateway address")
 	flag.StringVar(&options.addr, "listen-addr", "0.0.0.0:2003", "Polymur-proxy listen address")
 	flag.StringVar(&options.statAddr, "stat-addr", "localhost:2020", "runstats listen address")
@@ -85,7 +80,7 @@ func main() {
 
 	// If we're going to use certificate auth to talk to the server, we have to be configured with
 	// a client certificate and key pair.
-	if options.useCertAuthentication && (options.clientCert == "" || options.clientKey == "") {
+	if options.clientCert == "" || options.clientKey == "" {
 		log.Fatalln("Cannot use certificate-based authentication without supplying a cert via -cert")
 	}
 
@@ -96,14 +91,12 @@ func main() {
 	} else {
 		go output.HTTPWriter(
 			&output.HTTPWriterConfig{
-				ClientCert:            options.clientCert,
-				ClientKey:             options.clientKey,
-				CACert:                options.CACert,
-				UseCertAuthentication: options.useCertAuthentication,
-				APIKey:                options.APIKey,
-				Gateway:               options.gateway,
-				Workers:               options.workers,
-				IncomingQueue:         incomingQueue,
+				ClientCert:    options.clientCert,
+				ClientKey:     options.clientKey,
+				CACert:        options.CACert,
+				Gateway:       options.gateway,
+				Workers:       options.workers,
+				IncomingQueue: incomingQueue,
 			},
 			ready)
 	}
@@ -122,14 +115,6 @@ func main() {
 		FlushSize:     5000,
 		Stats:         sentCntr,
 	})
-
-	// Polymur stats writer.
-	if options.metricsFlush > 0 {
-		go runstats.WriteGraphite(incomingQueue, options.metricsFlush, sentCntr)
-	}
-
-	// Runtime stats listener.
-	go runstats.Start(options.statAddr)
 
 	runControl()
 }

@@ -36,15 +36,13 @@ import (
 
 // HTTPWriterConfig holds configuration for the HTTP Writer
 type HTTPWriterConfig struct {
-	CACert                string
-	ClientCert            string
-	ClientKey             string
-	UseCertAuthentication bool
-	APIKey                string
-	Gateway               string
-	IncomingQueue         chan []*string
-	Workers               int
-	client                *http.Client
+	CACert        string
+	ClientCert    string
+	ClientKey     string
+	Gateway       string
+	IncomingQueue chan []*string
+	Workers       int
+	client        *http.Client
 }
 
 // GwResp captures the response string
@@ -56,8 +54,7 @@ type GwResp struct {
 
 // HTTPWriter writes compressesed message batches over HTTPS
 // to a polymur-gateway instance. Initial connection is OK'd
-// by hitting the /ping path with a valid client API key registered
-// with the polymur-gateway.
+// by hitting the /ping path with a valid TLS cert
 func HTTPWriter(config *HTTPWriterConfig, ready chan bool) {
 	var roots *x509.CertPool
 
@@ -93,10 +90,10 @@ func HTTPWriter(config *HTTPWriterConfig, ready chan bool) {
 		tr := &http.Transport{TLSClientConfig: tlsConf}
 		config.client = &http.Client{Transport: tr}
 	} else {
-		config.client = &http.Client{}
+		log.Fatalln("You must provide a TLS certificate and key.  Run with -h for help.")
 	}
 
-	// Try connection, verify api key.
+	// Try connection, verify certificate.
 	log.Printf("Pinging gateway %s\n", config.Gateway)
 	response, err := apiPost(config, "/ping", nil)
 	if err != nil {
@@ -147,10 +144,6 @@ func apiPost(config *HTTPWriterConfig, path string, postData io.Reader) (*GwResp
 	req, err := http.NewRequest("POST", config.Gateway+path, postData)
 	if err != nil {
 		return nil, err
-	}
-
-	if !config.UseCertAuthentication {
-		req.Header.Add("X-polymur-key", config.APIKey)
 	}
 
 	resp, err := config.client.Do(req)

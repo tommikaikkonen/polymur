@@ -31,7 +31,6 @@ import (
 	"github.com/chrissnell/polymur/listener"
 	"github.com/chrissnell/polymur/output"
 	"github.com/chrissnell/polymur/pool"
-	"github.com/chrissnell/polymur/runstats"
 	"github.com/chrissnell/polymur/statstracker"
 	"github.com/namsral/flag"
 )
@@ -54,7 +53,6 @@ var (
 func init() {
 	flag.StringVar(&options.addr, "listen-addr", "0.0.0.0:2003", "Polymur listen address")
 	flag.StringVar(&options.apiAddr, "api-addr", "localhost:2030", "API listen address")
-	flag.StringVar(&options.statAddr, "stat-addr", "localhost:2020", "runstats listen address")
 	flag.IntVar(&options.queuecap, "queue-cap", 4096, "In-flight message queue capacity per destination")
 	flag.BoolVar(&options.console, "console-out", false, "Dump output to console")
 	flag.StringVar(&options.destinations, "destinations", "", "Comma-delimited list of ip:port destinations")
@@ -112,14 +110,6 @@ func main() {
 
 	// API listener.
 	go polymur.Api(pool, options.apiAddr)
-
-	// Polymur stats writer.
-	if options.metricsFlush > 0 {
-		go runstats.WriteGraphite(incomingQueue, options.metricsFlush, sentCntr)
-	}
-
-	// Runtime stats listener.
-	go runstats.Start(options.statAddr)
 
 	runControl()
 }

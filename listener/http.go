@@ -34,22 +34,19 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/chrissnell/polymur/keysync"
 	"github.com/chrissnell/polymur/statstracker"
 )
 
 // HTTPListenerConfig hold configuration for the HTTP listener
 type HTTPListenerConfig struct {
-	Addr                  string
-	Port                  string
-	IncomingQueue         chan []*string
-	CA                    string
-	Cert                  string
-	Key                   string
-	KeyPrefix             bool
-	UseCertAuthentication bool
-	Stats                 *statstracker.Stats
-	Keys                  *keysync.ApiKeys
+	Addr          string
+	Port          string
+	IncomingQueue chan []*string
+	CA            string
+	Cert          string
+	Key           string
+	KeyPrefix     bool
+	Stats         *statstracker.Stats
 }
 
 // HTTPListener accepts connections from a polymur-proxy
@@ -129,9 +126,6 @@ func HTTPListener(config *HTTPListenerConfig) {
 // Each batch is broken up and populated into a []*string and pushed
 // to the IncomingQueue for downstream destination writing.
 func ingest(w http.ResponseWriter, req *http.Request, config *HTTPListenerConfig) {
-	var requestKey, keyName string
-	var valid bool
-
 	var client string
 	xff := req.Header.Get("x-forwarded-for")
 	if xff != "" {
@@ -140,24 +134,7 @@ func ingest(w http.ResponseWriter, req *http.Request, config *HTTPListenerConfig
 		client = req.RemoteAddr
 	}
 
-	if !config.UseCertAuthentication {
-		requestKey = req.Header.Get("X-Polymur-Key")
-
-		keyName, valid = validateKey(requestKey, config.Keys)
-		if !valid {
-			log.Printf("[client %s] %s is not a valid key\n",
-				client, requestKey)
-
-			resp := fmt.Sprintf("invalid key")
-			req.Close = true
-			w.WriteHeader(http.StatusUnauthorized)
-			io.WriteString(w, resp)
-
-			return
-		}
-	} else {
-		keyName = req.TLS.PeerCertificates[0].Subject.CommonName
-	}
+	keyName := req.TLS.PeerCertificates[0].Subject.CommonName
 
 	io.WriteString(w, "Batch Received\n")
 	log.Printf("[client %s] Recieved batch from from %s\n",
@@ -208,41 +185,7 @@ func ping(w http.ResponseWriter, req *http.Request, config *HTTPListenerConfig) 
 		client = req.RemoteAddr
 	}
 
-	if config.UseCertAuthentication {
-		log.Println("TLS Certificate authentication suceeded for",
-			req.TLS.PeerCertificates[0].Subject.CommonName)
-		io.WriteString(w, "key is valid\n")
-	} else {
-		requestKey := req.Header.Get("X-Polymur-Key")
-		keyName, valid := validateKey(requestKey, config.Keys)
-
-		if valid {
-			log.Printf("[client %s] key for %s is valid\n",
-				client, keyName)
-			io.WriteString(w, "key is valid\n")
-		} else {
-			log.Printf("[client %s] %s is not a valid key\n",
-				client, requestKey)
-
-			resp := fmt.Sprintf("invalid key")
-			req.Close = true
-			w.WriteHeader(http.StatusUnauthorized)
-			io.WriteString(w, resp)
-		}
-	}
-
-}
-
-// validateKey looks up if a key is registered in Consul
-// and returns the key name and key.
-func validateKey(k string, keys *keysync.ApiKeys) (string, bool) {
-	keys.Lock()
-	name, valid := keys.Keys[k]
-	keys.Unlock()
-
-	if valid {
-		return name, true
-	}
-	return "", false
-
+	log.Println("TLS Certificate authentication suceeded for",
+		req.TLS.PeerCertificates[0].Subject.CommonName, "at", client)
+	io.WriteString(w, "key is valid\n")
 }
