@@ -43,7 +43,6 @@ var (
 		queuecap     int
 		console      bool
 		destinations string
-		metricsFlush int
 		distribution string
 	}
 
@@ -56,7 +55,6 @@ func init() {
 	flag.IntVar(&options.queuecap, "queue-cap", 4096, "In-flight message queue capacity per destination")
 	flag.BoolVar(&options.console, "console-out", false, "Dump output to console")
 	flag.StringVar(&options.destinations, "destinations", "", "Comma-delimited list of ip:port destinations")
-	flag.IntVar(&options.metricsFlush, "metrics-flush", 0, "Graphite flush interval for runtime metrics (0 is disabled)")
 	flag.StringVar(&options.distribution, "distribution", "broadcast", "Destination distribution methods: broadcast, hash-route")
 	flag.Parse()
 }

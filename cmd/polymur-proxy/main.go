@@ -35,16 +35,15 @@ import (
 
 var (
 	options struct {
-		clientCert   string
-		clientKey    string
-		CACert       string
-		gateway      string
-		addr         string
-		statAddr     string
-		queuecap     int
-		workers      int
-		console      bool
-		metricsFlush int
+		clientCert string
+		clientKey  string
+		CACert     string
+		gateway    string
+		addr       string
+		statAddr   string
+		queuecap   int
+		workers    int
+		console    bool
 	}
 
 	sigChan = make(chan os.Signal)
@@ -60,7 +59,6 @@ func init() {
 	flag.IntVar(&options.queuecap, "queue-cap", 32768, "In-flight message queue capacity")
 	flag.IntVar(&options.workers, "workers", 3, "HTTP output workers")
 	flag.BoolVar(&options.console, "console-out", false, "Dump output to console")
-	flag.IntVar(&options.metricsFlush, "metrics-flush", 0, "Graphite flush interval for runtime metrics (0 is disabled)")
 	flag.Parse()
 }
 
