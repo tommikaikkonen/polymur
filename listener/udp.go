@@ -44,8 +44,7 @@ func UDPListener(config *UDPListenerConfig) {
 				log.Printf("UDP read error: %s\n", err)
 				continue
 			}
-			// We need to have each message in its own
-			// array so that the slices sent to messages don't
+			// We can't reuse buf here as slices sent to messages could
 			// have their data changed underneath if a new packet
 			// is received before processing the previous one.
 			msg := make([]byte, n)
