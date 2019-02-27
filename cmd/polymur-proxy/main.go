@@ -117,11 +117,12 @@ func main() {
 	listenTCP = false
 	listenUDP = false
 	for _, element := range listeningProtocols {
-		if element == "udp" {
+		switch element {
+		case "udp":
 			listenUDP = true
-		} else if element == "tcp" {
+		case "tcp":
 			listenTCP = true
-		} else {
+		default:
 			log.Fatalln("Protocol must be one of {tcp, udp}")
 		}
 	}
