@@ -62,7 +62,6 @@ func udpMessageBatcher(messages chan string, config *UDPListenerConfig) {
 	batch := make([]*string, config.FlushSize)
 	pos := 0
 
-run:
 	for {
 		// We hit the flush timeout, load the current batch if present.
 		select {
@@ -75,8 +74,12 @@ run:
 			// reset timeout
 			flushTimeout = time.NewTicker(time.Duration(config.FlushTimeout) * time.Second)
 		case m, ok := <-messages:
+			// This should only happen when the program is ending
 			if !ok {
-				break run
+				// Load any partial batch before
+				// we return.
+				config.IncomingQueue <- batch
+				return
 			}
 
 			config.Stats.UpdateCount(1)
@@ -101,8 +104,4 @@ run:
 			}
 		}
 	}
-
-	// Load any partial batch before
-	// we return.
-	config.IncomingQueue <- batch
 }
