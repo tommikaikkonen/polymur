@@ -9,7 +9,7 @@ import (
 	"github.com/chrissnell/polymur/statstracker"
 )
 
-// UDPListenerConfig holds configuration for the TCP listener
+// UDPListenerConfig holds configuration for the UDP listener
 type UDPListenerConfig struct {
 	IncomingQueue chan []*string
 	FlushTimeout  int
