@@ -37,6 +37,7 @@ func UDPListener(config *UDPListenerConfig) {
 	buf := make([]byte, 1024)
 	go func() {
 		defer server.Close()
+		defer close(messages)
 		for {
 			n, _, err := server.ReadFromUDP(buf)
 			if err != nil {
@@ -78,6 +79,8 @@ run:
 			if !ok {
 				break run
 			}
+
+			config.Stats.UpdateCount(1)
 
 			// Drop message and respond if the incoming queue is at capacity.
 			if len(config.IncomingQueue) >= 32768 {
